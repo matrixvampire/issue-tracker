@@ -84,6 +84,35 @@ class IssueServiceTest {
     }
 
     @Test
+    void test__getStory__withAssignDeveloper__shouldSuccess() {
+        StoryEntity storyEntity = buildStoryEntity();
+        storyEntity.setDeveloper(buildDeveloperEntity());
+        when(storyRepository.findById(anyInt())).thenReturn(Optional.of(storyEntity));
+
+        StoryResponse storyResponse = issueService.getStory(1);
+
+        assertThat(storyResponse).isNotNull();
+        assertThat(storyResponse.getId()).isEqualTo(1);
+        assertThat(storyResponse.getTitle()).isEqualTo("title");
+        assertThat(storyResponse.getDescription()).isEqualTo("description");
+        assertThat(storyResponse.getStoryPoint()).isEqualTo(2);
+        assertThat(storyResponse.getStatus()).isEqualTo(StoryStatus.NEW.name());
+        assertThat(storyResponse.getCreationDate()).isNotNull();
+        assertThat(storyResponse.getDeveloper()).isNotNull();
+        assertThat(storyResponse.getDeveloper().getId()).isEqualTo(1);
+        assertThat(storyResponse.getDeveloper().getName()).isEqualTo("developer");
+    }
+
+    @Test
+    void test__getStory__whenStoryNotFound__shouldFail() {
+        when(storyRepository.findById(anyInt())).thenReturn(Optional.empty());
+
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> issueService.getStory(1));
+        assertThat(badRequestException).isNotNull();
+        assertThat(badRequestException.getResponseMessage()).isEqualTo(ResponseMessageEnum.STORY_NOT_FOUND);
+    }
+
+    @Test
     void test__updateStory__shouldSuccess() {
         when(storyRepository.findById(anyInt())).thenReturn(Optional.of(buildStoryEntity()));
 
@@ -103,12 +132,34 @@ class IssueServiceTest {
     }
 
     @Test
+    void test__updateStory__whenStoryNotFound__shouldFail() {
+        when(storyRepository.findById(anyInt())).thenReturn(Optional.empty());
+
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> issueService.updateStory(1, buildStoryUpdateRequest()));
+        assertThat(badRequestException).isNotNull();
+        assertThat(badRequestException.getResponseMessage()).isEqualTo(ResponseMessageEnum.STORY_NOT_FOUND);
+
+        verify(storyRepository, never()).save(any(StoryEntity.class));
+    }
+
+    @Test
     void test__deleteStory__shouldSuccess() {
         when(storyRepository.existsById(anyInt())).thenReturn(Boolean.TRUE);
 
         issueService.deleteStory(1);
 
         verify(storyRepository).deleteById(1);
+    }
+
+    @Test
+    void test__deleteStory__whenBugNotFound__shouldFail() {
+        when(storyRepository.existsById(anyInt())).thenReturn(Boolean.FALSE);
+
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> issueService.deleteStory(1));
+        assertThat(badRequestException).isNotNull();
+        assertThat(badRequestException.getResponseMessage()).isEqualTo(ResponseMessageEnum.STORY_NOT_FOUND);
+
+        verify(storyRepository, never()).deleteById(1);
     }
 
     @Test
@@ -148,6 +199,35 @@ class IssueServiceTest {
     }
 
     @Test
+    void test__getBug__withAssignDeveloper__shouldSuccess() {
+        BugEntity bugEntity = buildBugEntity();
+        bugEntity.setDeveloper(buildDeveloperEntity());
+        when(bugRepository.findById(anyInt())).thenReturn(Optional.of(bugEntity));
+
+        BugResponse bugResponse = issueService.getBug(1);
+
+        assertThat(bugResponse).isNotNull();
+        assertThat(bugResponse.getId()).isEqualTo(1);
+        assertThat(bugResponse.getTitle()).isEqualTo("title");
+        assertThat(bugResponse.getDescription()).isEqualTo("description");
+        assertThat(bugResponse.getPriority()).isEqualTo(Priority.CRITICAL.name());
+        assertThat(bugResponse.getStatus()).isEqualTo(StoryStatus.NEW.name());
+        assertThat(bugResponse.getCreationDate()).isNotNull();
+        assertThat(bugResponse.getDeveloper()).isNotNull();
+        assertThat(bugResponse.getDeveloper().getId()).isEqualTo(1);
+        assertThat(bugResponse.getDeveloper().getName()).isEqualTo("developer");
+    }
+
+    @Test
+    void test__getBug__whenStoryNotFound__shouldFail() {
+        when(bugRepository.findById(anyInt())).thenReturn(Optional.empty());
+
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> issueService.getBug(1));
+        assertThat(badRequestException).isNotNull();
+        assertThat(badRequestException.getResponseMessage()).isEqualTo(ResponseMessageEnum.BUG_NOT_FOUND);
+    }
+
+    @Test
     void test__updateBug__shouldSuccess() {
         when(bugRepository.findById(anyInt())).thenReturn(Optional.of(buildBugEntity()));
 
@@ -164,6 +244,17 @@ class IssueServiceTest {
         assertThat(bugResponse.getCreationDate()).isNotNull();
 
         verify(bugRepository).save(any(BugEntity.class));
+    }
+
+    @Test
+    void test__updateBug__whenStoryNotFound__shouldFail() {
+        when(bugRepository.findById(anyInt())).thenReturn(Optional.empty());
+
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> issueService.updateBug(1, buildBugUpdateRequest()));
+        assertThat(badRequestException).isNotNull();
+        assertThat(badRequestException.getResponseMessage()).isEqualTo(ResponseMessageEnum.BUG_NOT_FOUND);
+
+        verify(bugRepository, never()).save(any(BugEntity.class));
     }
 
     @Test
@@ -202,6 +293,29 @@ class IssueServiceTest {
     }
 
     @Test
+    void test__assignStoryDeveloper__whenStoryNotFound__shouldFail() {
+        when(storyRepository.findById(anyInt())).thenReturn(Optional.empty());
+
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> issueService.assignStoryDeveloper(1, new AssigneeRequest(1)));
+        assertThat(badRequestException).isNotNull();
+        assertThat(badRequestException.getResponseMessage()).isEqualTo(ResponseMessageEnum.STORY_NOT_FOUND);
+
+        verify(storyRepository, never()).save(any(StoryEntity.class));
+    }
+
+    @Test
+    void test__assignStoryDeveloper__whenDeveloperNotFound__shouldFail() {
+        when(storyRepository.findById(anyInt())).thenReturn(Optional.of(buildStoryEntity()));
+        when(developerRepository.findById(anyInt())).thenReturn(Optional.empty());
+
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> issueService.assignStoryDeveloper(1, new AssigneeRequest(1)));
+        assertThat(badRequestException).isNotNull();
+        assertThat(badRequestException.getResponseMessage()).isEqualTo(ResponseMessageEnum.DEVELOPER_NOT_FOUND);
+
+        verify(storyRepository, never()).save(any(StoryEntity.class));
+    }
+
+    @Test
     void test__assignBugDeveloper__shouldSuccess() {
         when(bugRepository.findById(anyInt())).thenReturn(Optional.of(buildBugEntity()));
         DeveloperEntity developerEntity = buildDeveloperEntity();
@@ -214,6 +328,29 @@ class IssueServiceTest {
 
         BugEntity capturedBugEntity = argumentCaptor.getValue();
         assertThat(capturedBugEntity.getDeveloper()).isEqualTo(developerEntity);
+    }
+
+    @Test
+    void test__assignBugDeveloper__whenStoryNotFound__shouldFail() {
+        when(bugRepository.findById(anyInt())).thenReturn(Optional.empty());
+
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> issueService.assignBugDeveloper(1, new AssigneeRequest(1)));
+        assertThat(badRequestException).isNotNull();
+        assertThat(badRequestException.getResponseMessage()).isEqualTo(ResponseMessageEnum.BUG_NOT_FOUND);
+
+        verify(bugRepository, never()).save(any(BugEntity.class));
+    }
+
+    @Test
+    void test__assignBugDeveloper__whenDeveloperNotFound__shouldFail() {
+        when(bugRepository.findById(anyInt())).thenReturn(Optional.of(buildBugEntity()));
+        when(developerRepository.findById(anyInt())).thenReturn(Optional.empty());
+
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> issueService.assignBugDeveloper(1, new AssigneeRequest(1)));
+        assertThat(badRequestException).isNotNull();
+        assertThat(badRequestException.getResponseMessage()).isEqualTo(ResponseMessageEnum.DEVELOPER_NOT_FOUND);
+
+        verify(bugRepository, never()).save(any(BugEntity.class));
     }
 
     private StoryCreateRequest buildStoryCreateRequest() {

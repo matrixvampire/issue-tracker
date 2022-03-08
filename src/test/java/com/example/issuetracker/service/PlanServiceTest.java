@@ -2,7 +2,6 @@ package com.example.issuetracker.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,12 +13,11 @@ import com.example.issuetracker.domain.IssueType;
 import com.example.issuetracker.domain.StoryStatus;
 import com.example.issuetracker.repository.DeveloperRepository;
 import com.example.issuetracker.repository.StoryRepository;
+import com.example.issuetracker.repository.entity.DeveloperEntity;
 import com.example.issuetracker.repository.entity.StoryEntity;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -38,15 +36,12 @@ class PlanServiceTest {
     @InjectMocks
     private PlanService planService;
 
-    @BeforeEach
-    void setUp() {
-        lenient().when(applicationConfiguration.getAverageStoryPoint()).thenReturn(10);
-        lenient().when(developerRepository.count()).thenReturn(2L);
-        lenient().when(storyRepository.findByStatusIn(anyList())).thenReturn(buildStoryEntity());
-    }
-
     @Test
     void test__getPlan__shouldSuccess() {
+        when(applicationConfiguration.getAverageStoryPoint()).thenReturn(10);
+        when(developerRepository.count()).thenReturn(2L);
+        when(storyRepository.findByStatusIn(anyList())).thenReturn(buildStoryEntity());
+
         PlanListResponse planListResponse = planService.getPlan();
 
         assertThat(planListResponse).isNotNull();
@@ -76,6 +71,8 @@ class PlanServiceTest {
 
     @Test
     void test__getPlan__withNoStories__shouldSuccessWithoutPlan() {
+        when(applicationConfiguration.getAverageStoryPoint()).thenReturn(10);
+        when(developerRepository.count()).thenReturn(2L);
         when(storyRepository.findByStatusIn(anyList())).thenReturn(Collections.emptyList());
 
         PlanListResponse planListResponse = planService.getPlan();
@@ -95,8 +92,15 @@ class PlanServiceTest {
             storyEntity.setType(IssueType.STORY);
             storyEntity.setStoryPoint(i % 2 == 0 ? 2 : i % 3 == 0 ? 3 : 1);
             storyEntity.setStatus(i % 2 == 0 ? StoryStatus.NEW : StoryStatus.ESTIMATED);
+            storyEntity.setDeveloper(i % 3 == 0 ? buildDeveloperEntity() : null);
             storyList.add(storyEntity);
         }
         return storyList;
+    }
+
+    private DeveloperEntity buildDeveloperEntity() {
+        DeveloperEntity developerEntity = new DeveloperEntity();
+        developerEntity.setId(1);
+        return developerEntity;
     }
 }

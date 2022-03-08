@@ -1,5 +1,6 @@
 package com.example.issuetracker.controller;
 
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,10 +19,10 @@ import com.example.issuetracker.controller.request.DeveloperCreateUpdateRequest;
 import com.example.issuetracker.controller.response.DeveloperListResponse;
 import com.example.issuetracker.controller.response.DeveloperResponse;
 import com.example.issuetracker.domain.ResponseMessageEnum;
+import com.example.issuetracker.exception.BadRequestException;
 import com.example.issuetracker.service.DeveloperService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -60,12 +61,12 @@ class DeveloperControllerTest {
 
         mockMvc.perform(post(CREATE_DEVELOPER)
                 .content(objectMapper.writeValueAsString(request))
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())))
-            .andExpect(jsonPath("$.data.id", is(ID)))
-            .andExpect(jsonPath("$.data.name", is(NAME)));
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpectAll(
+                status().isOk(),
+                jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())),
+                jsonPath("$.data.id", is(ID)),
+                jsonPath("$.data.name", is(NAME)));
 
         verify(developerService).createDeveloper(any(DeveloperCreateUpdateRequest.class));
     }
@@ -76,10 +77,11 @@ class DeveloperControllerTest {
         when(developerService.getDeveloper(anyInt())).thenReturn(response);
 
         mockMvc.perform(get(GET_DEVELOPER, ID))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())))
-            .andExpect(jsonPath("$.data.id", is(ID)))
-            .andExpect(jsonPath("$.data.name", is(NAME)));
+            .andExpectAll(
+                status().isOk(),
+                jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())),
+                jsonPath("$.data.id", is(ID)),
+                jsonPath("$.data.name", is(NAME)));
 
         verify(developerService).getDeveloper(ID);
     }
@@ -94,12 +96,12 @@ class DeveloperControllerTest {
 
         mockMvc.perform(put(UPDATE_DEVELOPER, ID)
                 .content(objectMapper.writeValueAsString(request))
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())))
-            .andExpect(jsonPath("$.data.id", is(ID)))
-            .andExpect(jsonPath("$.data.name", is(NAME)));
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpectAll(
+                status().isOk(),
+                jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())),
+                jsonPath("$.data.id", is(ID)),
+                jsonPath("$.data.name", is(NAME)));
 
         verify(developerService).updateDeveloper(eq(ID), any(DeveloperCreateUpdateRequest.class));
     }
@@ -107,9 +109,10 @@ class DeveloperControllerTest {
     @Test
     void test__deleteDeveloper__shouldSuccess() throws Exception {
         mockMvc.perform(delete(DELETE_DEVELOPER, ID))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())))
-            .andExpect(jsonPath("$.data", nullValue()));
+            .andExpectAll(
+                status().isOk(),
+                jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())),
+                jsonPath("$.data", nullValue()));
 
         verify(developerService).deleteDeveloper(ID);
     }
@@ -121,12 +124,25 @@ class DeveloperControllerTest {
         when(developerService.getAllDeveloper()).thenReturn(response);
 
         mockMvc.perform(get(GET_ALL_DEVELOPER)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())))
-            .andExpect(jsonPath("$.data.developers", Matchers.empty()));
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpectAll(
+                status().isOk(),
+                jsonPath("$.message", is(ResponseMessageEnum.SUCCESS.getMessage())),
+                jsonPath("$.data.developers", empty()));
 
         verify(developerService).getAllDeveloper();
+    }
+
+    @Test
+    void test__getDeveloper__onBadRequest__shouldFail() throws Exception {
+        when(developerService.getDeveloper(anyInt())).thenThrow(new BadRequestException(ResponseMessageEnum.DEVELOPER_NOT_FOUND));
+
+        mockMvc.perform(get(GET_DEVELOPER, ID))
+            .andExpectAll(
+                status().isBadRequest(),
+                jsonPath("$.message", is(ResponseMessageEnum.DEVELOPER_NOT_FOUND.getMessage())),
+                jsonPath("$.data", nullValue()));
+
+        verify(developerService).getDeveloper(ID);
     }
 }
