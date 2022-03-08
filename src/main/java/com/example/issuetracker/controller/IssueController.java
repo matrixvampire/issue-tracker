@@ -7,7 +7,6 @@ import com.example.issuetracker.controller.request.StoryCreateRequest;
 import com.example.issuetracker.controller.request.StoryUpdateRequest;
 import com.example.issuetracker.controller.response.BugResponse;
 import com.example.issuetracker.controller.response.StoryResponse;
-import com.example.issuetracker.domain.IssueType;
 import com.example.issuetracker.domain.Response;
 import com.example.issuetracker.domain.ResponseFactory;
 import com.example.issuetracker.service.IssueService;
